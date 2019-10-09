@@ -1,29 +1,28 @@
-import React, { useState, Component } from 'react';
+/* eslint-disable no-console */
+import React, { useState, useRef } from 'react';
 import FrequencyChart from './FrequencyChart';
 
-export default class ImageUploadCanvas extends Component {
-
-  state = {
+export default function ImageUploadCanvas() {
+  const [state, setState] = useState({
     image: null,
     stats: null
-  }
+  });
+  const canvas = useRef(null);
 
-  drawImage = (image) => {
-    const { canvas } = this.refs;
+  const drawImage = (image) => {
+    const {current: currentCanvas} = canvas;
+    const ctx = currentCanvas.getContext('2d');
+    ctx.clearRect(0, 0, currentCanvas.width, currentCanvas.height);
 
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    canvas.width = image.width;
-    canvas.height = image.height;
-
+    currentCanvas.width = image.width;
+    currentCanvas.height = image.height;
 
     ctx.drawImage(image, 0, 0);
 
-    return ctx.getImageData(0, 0, canvas.width, canvas.height)
+    return ctx.getImageData(0, 0, currentCanvas.width, currentCanvas.height)
   }
 
-  getStatsAndSave = (image, imageData) =>  {
+  const getStatsAndSave = (image, imageData) => {
     const imageStats = {
       pixels: imageData.height * imageData.width,
       red: 0,
@@ -42,12 +41,12 @@ export default class ImageUploadCanvas extends Component {
     imageStats.greenPossibility = Math.round(imageStats.green / imageStats.pixels * 10000) / 10000;
 
  
-    this.setState({ image, stats: imageStats})
+    setState({ image, stats: imageStats})
     console.log(imageData);
     console.log(imageStats)
   }
 
-  readFile = (file) => {
+  const readFile = (file) => {
     const fileReader = new FileReader()
 
     fileReader.onload = () => {
@@ -55,26 +54,25 @@ export default class ImageUploadCanvas extends Component {
       image.src = fileReader.result; 
       image.onload = () => {
         image.style.display = 'none';
-        const imageData = this.drawImage(image)
-        this.getStatsAndSave(image, imageData)
+        const imageData = drawImage(image)
+        getStatsAndSave(image, imageData)
       }
     }
 
     fileReader.readAsDataURL(file)
   }
 
-  render() {
-    const {image, stats} = this.state;
-    if (image) {
-      this.drawImage(image);
-    }
-    return (
-      <div>
-        <input type="file" onChange={e => this.readFile(e.target.files[0])} />
-        <canvas ref="canvas" />
-        { stats &&
-        <FrequencyChart imageStats={stats} />}
-      </div>
-    );
+   
+  if (state.image) {
+    drawImage(state.image);
   }
-}
+  return (
+    <div>
+      <input type="file" onChange={e => readFile(e.target.files[0])} />
+      <canvas ref={canvas} />
+      { state.stats &&
+      <FrequencyChart imageStats={state.stats} />}
+    </div>
+  );
+
+ }
